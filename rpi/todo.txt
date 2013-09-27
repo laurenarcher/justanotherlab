@@ -1,0 +1,4 @@
+- example of completed cable
+- how does relay work?
+- make sure nothing in sketch pic is misleading
+- suggest inspection points (clicking relay) and have warnings to avoid damage to equipment or people

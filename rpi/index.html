@@ -3,69 +3,115 @@ layout: default
 ---
 <div>
 
-<h2>Raspberry Pi Introduction Lab</h2>
-
-<h3>Objective</h3>
-<p>Learn how to configure a brand new Raspberry Pi, connect it to a 120V switch (to control a fan, an artisanal light bulb, a blender, etc.), and then control the whole thing with a web browser.</p>
-
-<h3>Overview</h3>
-
-<a href="diagram.jpg"><img src="diagram.jpg" style="width: 600px; margin: 10px;"></a>
-
-<h3>Equipment</h3>
+<h2 style="background: #CCCCCC; padding: 10px;">Overview</h2>
+<h3>The Challenge</h3>
+<p>Set up a Raspberry Pi so that it turns an incandescent lamp on and off in response to these web requests:</p>
 <ul>
-<li>Raspberry Pi Model B Revision 2.0 - <a href="http://canada.newark.com/raspberry-pi/raspbrry-modb-512m/model-b-assembled-board-only/dp/43W5302">product page</a></li>
-<li>Relay Board - <a href="http://www.microbot.it/en/product/75/Relay-Module.html">product page</a></li>
+<li><code>http://address-of-rpi/on</code> turns the light on.</li>
+<li><code>http://address-of-rpi/off</code> turns the light off.</li>
+</ul>
+<p>You'll have all the equipment you need as well as someone on call to answer questions.</p>
+
+<h3>Example Solution</h3>
+<p>Here's an example of a working setup.  The specific URLs in this case were <code>http://192.168.2.14/on</code> and <code>http://192.168.2.14/off</code>.</p>
+<iframe width="640" height="390" src="//www.youtube.com/embed/TT9BCTUG9xc" frameborder="0" allowfullscreen></iframe>
+<p>And a general overview sketch of the system.  <em>Note: the relay wiring is not exactly as shown.</em></p>
+<a href="diagram.jpg"><img src="diagram.jpg" style="width: 600px;"></a>
+
+<h3>Provided Equipment</h3>
+<p>You'll have these items available to you.  Note you can use your own laptop if you wish, but there is also one available.</p>
+<ul>
+<li>Raspberry Pi Model B Revision 2.0</li>
+<li>Relay Board</li>
 <li>Generic USB Wifi Dongle</li>
-<li>Generic SD Card, at least 4GB</li>
-<li>Generic Laptop with SD Card Reader</li>
+<li>Generic SD Card, at least 4GB, with Raspbian installed</li>
+<li>Generic Laptop</li>
 <li>Generic Monitor with HDMI</li>
 <li>Generic USB Keyboard</li>
 <li>Generic USB Power Supply capable of at least 1A</li>
 </ul>
 
-<h3>Software</h3>
-<p>Note you can find this software on the USB stick for the lab if you're doing it in person.</p>
-<ul>
-<li>New Out of Box Software (NOOBS) - <a href="http://downloads.raspberrypi.org/NOOBS_latest">NOOBS_v1_2_1.zip</a></li>
-<li>SD Formatter 4.0 for SD/SDHC/SDXC - <a href="https://www.sdcard.org/downloads/formatter_4/">SDFormatterv4.zip</a></li>
-</ul>
+<h2 style="background: #CCCCCC; padding: 10px;">Documentation</h2>
+
+<h3>SD Card Setup</h3>
+<p>Your SD card will come with a fresh install of Raspbian.  If you have to do this yourself, check the <a href="http://www.raspberrypi.org/downloads">Raspberry Pi website downloads section</a> for files and instructions.</p>
+
+<h3>Logging In</h3>
+<p>The username is <code>pi</code> and the password is <code>raspberry</code></p>
+
+<h3>Keyboard Setup</h3>
+<p>The keyboard defaults to a UK layout.  To change it edit the file <code>/etc/default/keyboard</code> and change the line <code>XKBLAYOUT="gb"</code> to <code>XKBLAYOUT="us"</code></p>
+
+<h3>Wifi Setup</h3>
+<p>Linux needs to know how to access the lab Wifi.  Edit the file <code>/etc/wpa_supplicant/wpa_supplicant.conf</code> and add this information, replacing SSID and PASSWORD with the Wifi network name and password:</p>
+<pre>
+network={
+ssid="SSID"
+psk="PASSWORD"
+}
+</pre>
+<p>You can either reboot the pi after saving this, or run <code>ifup wlan0</code></p>
+<p>To find out your IP address, run <code>ifconfig</code> and look at the <code>wlan0</code> section.</p>
+
+<h3>Electrical Wiring</h3>
+<p><span class="glyphicon glyphicon-warning-sign text-danger"></span> Risk of electric shock.  Disconnect the circuit from power during work.</p>
+<p><span class="glyphicon glyphicon-exclamation-sign text-warning"></span> The Raspberry Pi can be damaged easily by incorrect wiring.  Check your work before applying power.</p>
+<p>Here is the <a href="mr009-001_datasheet.pdf">datasheet for the relay module</a>.</p>
+<p>Here is the <a href="Raspberry-Pi-R2.0-Schematics-Issue2.2_027.pdf">schematic diagram of the Raspberry Pi</a>.  The connector you want is named P1, shown on Sheet 2, E6.</p>
+<p>The matching between the schematic and the actual board can be unclear.  Here is the P1 pin numbering for clarification:</p>
+<a href="p1_pinout.jpg"><img src="p1_pinout.jpg" style="width: 300px; margin: 10px;"></a>
 
 <h3>Basic GPIO Code</h3>
+<p>This code is written in Python.  Here is the <a href="http://docs.python.org/2/index.html">python documentation</a>.</p>
+<p>You must run Python as root (e.g. <code>sudo python</code>) to access GPIO.</p>
 {% highlight python %}
 import RPi.GPIO as GPIO
+import time
 
+pin_number = 3 # Use pin 3 on the P1 connector
+GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BOARD)
-GPIO.setup(3, GPIO.OUT)
+GPIO.setup(pin_number, GPIO.OUT) 
 
-def on():
-    GPIO.output(3, GPIO.HIGH)
-    
-def off():
-    GPIO.output(3, GPIO.LOW)
+GPIO.output(pin_number, GPIO.HIGH) # On
+time.sleep(1.0) # Wait one second
+GPIO.output(pin_number, GPIO.LOW) # Off
 {% endhighlight %}
 
-<h3>Webserver Code</h3>
+<h3>Basic Webserver Code</h3>
+<p>This code is written in Python.  Here is the <a href="http://docs.python.org/2/index.html">python documentation</a>.</p>
+<p>This code uses the <a href="http://docs.python.org/2/library/simplehttpserver.html">SimpleHTTPServer</a> module included in the standard Python library.</p>
+
 {% highlight python %}
-import web
-        
-urls = (
-    '/(.*)', 'hello'
-)
-app = web.application(urls, globals())
+import SocketServer
+import SimpleHTTPServer
 
-class hello:        
-    def GET(self, name):
-        if not name: 
-            name = 'World'
-        return 'Hello, ' + name + '!'
+PORT = 8080
 
-if __name__ == "__main__":
-    app.run()
+class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type','text/html')
+        self.end_headers()
+            
+        if self.path=='/hello':    
+            self.wfile.write("Hello, world!")
+        elif self.path=='/goodbye':
+            self.wfile.write("Goodbye, world!")
+        else:
+            self.wfile.write("I don't know that URL.")
+
+httpd = SocketServer.ThreadingTCPServer(("", PORT),CustomHandler)
+
+print "serving at port", PORT
+httpd.serve_forever()
 {% endhighlight %}
+
+<h2 style="background: #CCCCCC; padding: 10px;">General Troubleshooting</h3>
+<h3>"Home directory missing, setting HOME=/" message on login.</h3>
+<p>This was fixed by rebooting the RPi.</p>
+<h3>Keyboard is typing the wrong characters.</h3>
+<p>See "Keyboard Setup" above.</p>
 
 </div>
       
-
-
-
